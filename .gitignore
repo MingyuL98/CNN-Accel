@@ -2,5 +2,6 @@
 *.png
 *.csv
 
+__pycache__
 data/*
 logs/*
