@@ -1,0 +1,1 @@
+python3 -u ./structed_pruning.py --pruning_type ${1} --amount ${2} --ln_norm ${3}
