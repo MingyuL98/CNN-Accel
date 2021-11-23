@@ -8,8 +8,15 @@ import argparse
 
 Q_Tensor = namedtuple('Q_Tensor', ['tensor', 'scale', 'zero'])
 
-def quantize_tensor(x, num_bits):
+def quantize_tensor(x, num_bits, narrowing):
+    # set x_min, x_max automatically
     x_min, x_max = x.min(), x.max()
+    
+    # set x_min, x_max manually
+    if (narrowing):
+        x_min = x_min + (x_max - x_min)*0.05
+        x_max = x_max - (x_max - x_min)*0.05
+
     q_min = 0.
     q_max = 2.**num_bits - 1
 
@@ -35,11 +42,11 @@ def quantize_tensor(x, num_bits):
 def dequantize_tensor(x):
     return x.scale * (x.tensor.float() - x.zero)
 
-def quantize_model(model, num_bits):
+def quantize_model(model, num_bits, narrowing):
     q_tensor_params = {}
 
     for name, param in model.state_dict().items():
-        q_param = quantize_tensor(param, num_bits)
+        q_param = quantize_tensor(param, num_bits, narrowing=narrowing)
         q_tensor_params[name+'-quant-scale'] = torch.Tensor([q_param.scale])
         # q_tensor_params[name+'-quant-zero'] = torch.ShortTensor([q_param.zero]) 
         # q_tensor_params[name+'-quant-zero'] = torch.ByteTensor([q_param.zero])
@@ -78,12 +85,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='ML_CODESIGN Lab3 - Task2/3 Quantizations')
     parser.add_argument('--num-bits', type=int, default=8, help='Quantization bits')
     parser.add_argument('--print', type=int, default=0, help='Print the first layer')
+    parser.add_argument('--narrowing', type=int, default=0, help='Manually set q_max and q_min')
 
     args = parser.parse_args()
 
     # params
     quant_bits = args.num_bits
     do_printing = args.print
+    narrowing = args.narrowing
     represent_bits = 32
 
     MODEL_LOADPATH = "models/task1.pth"
@@ -98,7 +107,7 @@ if __name__ == "__main__":
             print(param.data)
             break
     
-    quantize_model(model, num_bits=quant_bits)
+    quantize_model(model, num_bits=quant_bits, narrowing=narrowing)
 
     if (do_printing):
         for param in model.parameters():

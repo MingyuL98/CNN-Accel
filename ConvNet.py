@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
         if (draw_hist):
             # plot weight histogram (conv & linear layers)
-            fig1, axs1 = plt.subplots(2, 2, sharex=True, tight_layout=True)
+            fig1, axs1 = plt.subplots(2, 2, tight_layout=True)
             x_num = 0
             y_num = 0
 
