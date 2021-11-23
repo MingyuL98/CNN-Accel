@@ -2,7 +2,7 @@
 
 # replace with your python script
 EXE="bash task.sh"
-NUM_GPUS=4
+NUM_GPUS=2
 LOG_DIR="./logs"
 
 #echo "Enter a run name: (no spaces or slashes)"
@@ -20,9 +20,9 @@ echo "Running new experiments: $EXP_NAME"
 # create your argument combinations here
 arg_queue=()
 
-for type in "channel" "filter"; do 
-    for ln_norm in "l1" "l2"; do
-        for amount in 0.05 0.1 0.15 0.2 0.25 0.3 0.35 0.4 0.45 0.5 0.55 0.6 0.65 0.7 0.75 0.8; do
+for type in "filter"; do 
+    for ln_norm in "l1"; do
+        for amount in 0.72 0.74 0.76 0.78 0.8 0.82 0.84 0.86 0.88 0.9; do
             arg_queue+=(" ${type} ${amount} ${ln_norm}")
         done
     done
