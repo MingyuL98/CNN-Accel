@@ -8,6 +8,8 @@ from torch.autograd import Variable
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import os
 
 class MyConvNet(nn.Module):
     def __init__(self):
@@ -37,6 +39,24 @@ class MyConvNet(nn.Module):
         out = self.lin2(l1)
         return out
 
+    def to_vitis(self, output_folder_path):   
+        iter = 0
+        for layer in self.modules(): 
+            if(isinstance(layer, torch.nn.Conv2d)):
+                iter = iter + 1
+                weights = layer.weight.reshape(1,-1).cpu().detach().numpy()
+                
+                # export mins and maxs
+                file1 = open(path+"ranges"+str(iter)+".txt", "w")
+                file1.write(str(weights.min())+", ")
+                file1.write(str(weights.max()))
+                file1.write("\n")
+                file1.close()
+                
+                # write weights to csv files
+                filepath = output_folder_path+"conv_bn_weights_"+str(iter)+".csv" 
+                pd.DataFrame(weights).to_csv(filepath)
+                
 
 if __name__ == "__main__":
 
@@ -46,6 +66,7 @@ if __name__ == "__main__":
     parser.add_argument('--draw-hist', type=int, default=0, help='Histograms of the weights from critical layers')
     parser.add_argument('--model-sel', type=int, default=0, help='0: initial model, 1: quantized model, 2: reserved etc')   
     parser.add_argument('--num-bits', type=int, default=8, help='Number of quantization bits')   
+    parser.add_argument('--to-vitis', type=int, default=1, help='To CSV files')   
 
     args = parser.parse_args()
 
@@ -53,15 +74,30 @@ if __name__ == "__main__":
     do_testing = args.test
     draw_hist = args.draw_hist
     model_sel = args.model_sel
+    to_vitis = args.to_vitis
 
     # params
     batch_size = 64
     MODEL_PATH_F32 = "models/task1.pth"
     MODEL_PATH_UINTX = "models/model_quantized"+str(args.num_bits)+".pth"
+    
+    # TODO: Modify the file
+    MODEL_PATH_TOVITIS = "models/model_quantized8.pth"
 
     # init model
-    model = MyConvNet()
-    # summary(model, (1, 28, 28))
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = MyConvNet().to(device)
+    summary(model, (1, 28, 28))
+
+    if(to_vitis):
+        path = "models/vitis/"
+        model.load_state_dict(torch.load(MODEL_PATH_TOVITIS))
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        model.to_vitis(path)
+       
 
     # Quantization effects
     if(do_testing):
@@ -113,8 +149,8 @@ if __name__ == "__main__":
             total = 0.0
 
             for images, labels in test_loader:
-                images = Variable(images)
-                labels = labels
+                images = Variable(images).to(device)
+                labels = labels.to(device)
                 outputs = model(images)
                 loss = criterion(outputs, labels)
                 total += labels.size(0)
